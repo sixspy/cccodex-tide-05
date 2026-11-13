@@ -1,0 +1,24 @@
+:root {
+  color: #f3efe2;
+  background: #142033;
+  font-family: "IBM Plex Sans", "Source Han Sans SC", "Microsoft YaHei", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(215, 161, 95, 0.16), transparent 28%),
+    #142033;
+}
+
+button, input, textarea { font: inherit; }
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+button:disabled { cursor: not-allowed; opacity: 0.55; }

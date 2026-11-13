@@ -1,0 +1,41 @@
+name: tide-telegram-intake-tide-05
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3225:80"
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8225:8000"
+    environment:
+      DATABASE_URL: postgresql://app:app@db:5432/tidetelegram
+      JWT_SECRET: tide-telegram-dev-secret
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: docker.m.daocloud.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: tidetelegram
+    ports:
+      - "54425:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d tidetelegram"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  pgdata:

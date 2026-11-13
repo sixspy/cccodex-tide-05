@@ -1,0 +1,9 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.env
+pgdata/
+*.zip
+.DS_Store
+_smoke_passed.json
