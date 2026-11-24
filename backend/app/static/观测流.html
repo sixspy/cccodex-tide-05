@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>观测流 · 潮切</title>
+  <link rel="stylesheet" href="/styles.css"/>
+  <script src="/common.js"></script>
+</head>
+<body>
+  <div class="壳">
+    <aside class="侧轨">
+      <div class="侧牌">潮切</div>
+      <div class="侧副">物流网点轨迹 · 事件时关窗管道<br/>不是双轨对拍，也不是开腿成对</div>
+      <div class="窗条" id="侧窗条">
+        <div class="标">当前窗</div>
+        <div class="号" id="侧窗号">加载中</div>
+        <div class="时" id="侧窗时">—</div>
+      </div>
+      <div class="时轴">
+        <div class="点"><b>装载</b>观测点入流</div>
+        <div class="点"><b>入窗</b>事件时进缓冲</div>
+        <div class="点"><b>关窗</b>物化切片账</div>
+        <div class="点"><b>贯验</b>缓冲↔切片互证</div>
+      </div>
+      
+      <nav class="侧链">
+        <a href="/" >潮切台</a>
+        <a href="/观测流.html" class="亮">观测流</a>
+        <a href="/入窗缓冲.html" >入窗缓冲</a>
+        <a href="/窗切片账.html" >窗切片账</a>
+        <a href="/迟到匣.html" >迟到匣</a>
+        <a href="/窗贯验.html" >窗贯验</a>
+        <a href="/网点源.html" >网点源</a>
+        <a href="/窗规.html" >窗规</a>
+      </nav>
+
+    </aside>
+    <main class="主区">
+      <header class="页头">
+        <h1>观测流</h1>
+        <p>装载后的轨迹事件命运流水：已装载 / 已入缓冲 / 已迟到 / 已成片。</p>
+      </header>
+
+      <section class="卷">
+        <div class="表绕"><table><thead><tr><th>事件编号</th><th>运单键</th><th>网点键</th><th>事件时</th><th>命运</th></tr></thead><tbody id="表"></tbody></table></div>
+      </section>
+      <section class="卷"><div class="双栏"><p class="说明">观测点是装载入流。命运应在本页可读：已装载→已入缓冲/已迟到→已成片。</p><div class="侧注">版式：左侧窗时间轴。对拍是顶栏双轨，肉眼应能分开。</div></div></section>
+      <script>
+      (async () => {
+        const rows = await 潮切.getJSON("/api/观测点");
+        const tb = document.getElementById("表");
+        if (!rows.length) { tb.innerHTML = `<tr><td colspan="5">${潮切.空态("尚无观测点。回潮切台灌窗内成片样例。")}</td></tr>`; return; }
+        for (const r of rows) {
+          tb.appendChild(潮切.行(`<td>${潮切.安全文本(r.事件编号)}</td><td>${潮切.安全文本(r.运单键)}</td><td>${潮切.安全文本(r.网点键)}</td><td>${潮切.安全文本(r.事件时)}</td><td>${潮切.徽章(r.命运)}</td>`));
+        }
+      })();
+      </script>
+
+    </main>
+  </div>
+  <script>
+  (async () => {
+    try {
+      const o = await 潮切.getJSON("/api/概览");
+      const r = o.窗规 || {};
+      const el = document.getElementById("侧窗号");
+      const tm = document.getElementById("侧窗时");
+      if (el) el.textContent = r["当前窗号"] || "—";
+      if (tm) tm.textContent = `${r["窗起"] || ""} → ${r["窗止"] || ""}`;
+    } catch (e) {}
+  })();
+  </script>
+</body>
+</html>

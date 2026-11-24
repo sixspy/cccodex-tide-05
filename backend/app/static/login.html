@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <title>潮切登录</title>
+  <link rel="stylesheet" href="/styles.css"/>
+</head>
+<body>
+  <div class="登录壳">
+    <section class="登录左">
+      <h1>潮切</h1>
+      <p>把网点轨迹按事件时切进窗、关窗成片、迟到旁路。版式是左侧窗时间轴，不是对拍那种顶栏流水线。</p>
+      <div class="流水尺" style="margin-top:28px;color:#d7e0ea;max-width:420px">
+        <div class="端">窗起</div>
+        <div class="槽"><div class="窗块"></div></div>
+        <div class="端">窗止</div>
+      </div>
+    </section>
+    <section class="登录右">
+      <form class="登录卡" method="get" action="/">
+        <h2>进入潮切台</h2>
+        <p class="副">默认账号 admin / 密码 123456</p>
+        <label>账号</label>
+        <input name="user" value="admin" autocomplete="username"/>
+        <label>密码</label>
+        <input name="password" type="password" value="123456" autocomplete="current-password"/>
+        <button class="按钮" type="submit">登录</button>
+      </form>
+    </section>
+  </div>
+</body>
+</html>

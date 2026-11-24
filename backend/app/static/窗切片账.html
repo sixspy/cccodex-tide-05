@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>窗切片账 · 潮切</title>
+  <link rel="stylesheet" href="/styles.css"/>
+  <script src="/common.js"></script>
+</head>
+<body>
+  <div class="壳">
+    <aside class="侧轨">
+      <div class="侧牌">潮切</div>
+      <div class="侧副">物流网点轨迹 · 事件时关窗管道<br/>不是双轨对拍，也不是开腿成对</div>
+      <div class="窗条" id="侧窗条">
+        <div class="标">当前窗</div>
+        <div class="号" id="侧窗号">加载中</div>
+        <div class="时" id="侧窗时">—</div>
+      </div>
+      <div class="时轴">
+        <div class="点"><b>装载</b>观测点入流</div>
+        <div class="点"><b>入窗</b>事件时进缓冲</div>
+        <div class="点"><b>关窗</b>物化切片账</div>
+        <div class="点"><b>贯验</b>缓冲↔切片互证</div>
+      </div>
+      
+      <nav class="侧链">
+        <a href="/" >潮切台</a>
+        <a href="/观测流.html" >观测流</a>
+        <a href="/入窗缓冲.html" >入窗缓冲</a>
+        <a href="/窗切片账.html" class="亮">窗切片账</a>
+        <a href="/迟到匣.html" >迟到匣</a>
+        <a href="/窗贯验.html" >窗贯验</a>
+        <a href="/网点源.html" >网点源</a>
+        <a href="/窗规.html" >窗规</a>
+      </nav>
+
+    </aside>
+    <main class="主区">
+      <header class="页头">
+        <h1>窗切片账</h1>
+        <p>关窗后按运单物化的正式切片。这是关窗管道产物，不是行程成对，也不是对齐差。</p>
+      </header>
+
+      <section class="卷">
+        <div class="工具"><button class="按钮 青" id="关">关当前窗</button></div>
+        <div class="表绕"><table><thead><tr><th>切片编号</th><th>窗号</th><th>运单键</th><th>事件数</th><th>物化时</th></tr></thead><tbody id="表"></tbody></table></div>
+      </section>
+      <section class="卷">
+        <div class="双栏">
+          <p class="说明">切片按运单聚合事件数。邻题空桩可改半截回滚/封印写闸，基线只做整窗物化。</p>
+          <div class="侧注">去皮：关窗管道。勿抄对拍左右轨命名。</div>
+        </div>
+      </section>
+      <script>
+      async function 刷() {
+        const rows = await 潮切.getJSON("/api/窗切片账");
+        const tb = document.getElementById("表"); tb.innerHTML = "";
+        if (!rows.length) { tb.innerHTML = `<tr><td colspan="5">${潮切.空态("尚无切片。装载窗内事件后点关当前窗。")}</td></tr>`; return; }
+        for (const r of rows) {
+          tb.appendChild(潮切.行(`<td>${潮切.安全文本(r.切片编号)}</td><td>${潮切.安全文本(r.窗号)}</td><td>${潮切.安全文本(r.运单键)}</td><td>${r.事件数}</td><td>${潮切.安全文本(r.物化时)}</td>`));
+        }
+      }
+      document.getElementById("关").onclick = async () => { await 潮切.postJSON("/api/关窗/跑"); await 刷(); };
+      刷();
+      </script>
+
+    </main>
+  </div>
+  <script>
+  (async () => {
+    try {
+      const o = await 潮切.getJSON("/api/概览");
+      const r = o.窗规 || {};
+      const el = document.getElementById("侧窗号");
+      const tm = document.getElementById("侧窗时");
+      if (el) el.textContent = r["当前窗号"] || "—";
+      if (tm) tm.textContent = `${r["窗起"] || ""} → ${r["窗止"] || ""}`;
+    } catch (e) {}
+  })();
+  </script>
+</body>
+</html>

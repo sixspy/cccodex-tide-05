@@ -1,0 +1,15 @@
+name: tide
+services:
+  app:
+    build: ./backend
+    container_name: cc-tide-lab-tide-05
+    ports: ["7940:7900"]
+    volumes:
+      - tide_data:/data
+      - ./fixtures:/fixtures:ro
+    environment:
+      数据目录: /data
+      夹具目录: /fixtures
+      端口: "7900"
+volumes:
+  tide_data:

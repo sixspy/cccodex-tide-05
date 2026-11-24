@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>潮切台 · 潮切</title>
+  <link rel="stylesheet" href="/styles.css"/>
+  <script src="/common.js"></script>
+</head>
+<body>
+  <div class="壳">
+    <aside class="侧轨">
+      <div class="侧牌">潮切</div>
+      <div class="侧副">物流网点轨迹 · 事件时关窗管道<br/>不是双轨对拍，也不是开腿成对</div>
+      <div class="窗条" id="侧窗条">
+        <div class="标">当前窗</div>
+        <div class="号" id="侧窗号">加载中</div>
+        <div class="时" id="侧窗时">—</div>
+      </div>
+      <div class="时轴">
+        <div class="点"><b>装载</b>观测点入流</div>
+        <div class="点"><b>入窗</b>事件时进缓冲</div>
+        <div class="点"><b>关窗</b>物化切片账</div>
+        <div class="点"><b>贯验</b>缓冲↔切片互证</div>
+      </div>
+      
+      <nav class="侧链">
+        <a href="/" class="亮">潮切台</a>
+        <a href="/观测流.html" >观测流</a>
+        <a href="/入窗缓冲.html" >入窗缓冲</a>
+        <a href="/窗切片账.html" >窗切片账</a>
+        <a href="/迟到匣.html" >迟到匣</a>
+        <a href="/窗贯验.html" >窗贯验</a>
+        <a href="/网点源.html" >网点源</a>
+        <a href="/窗规.html" >窗规</a>
+      </nav>
+
+    </aside>
+    <main class="主区">
+      <header class="页头">
+        <h1>潮切台</h1>
+        <p>左侧是窗时间轴；右侧用水位和关窗动作验主链。去皮是事件时关窗，不是左右轨对齐。</p>
+      </header>
+
+      <section class="卷">
+        <h2>当前窗尺子</h2>
+        <p class="说明">橙色段=当前窗。事件时落在段内才进缓冲；段外进迟到匣。</p>
+        <div class="流水尺">
+          <div class="端" id="尺起">窗起</div>
+          <div class="槽"><div class="窗块"></div></div>
+          <div class="端" id="尺止">窗止</div>
+        </div>
+        <div class="流水尺" style="margin-top:0">
+          <div></div>
+          <div class="标尺"><span>过去</span><span>当前窗</span><span>未来/迟到</span></div>
+          <div></div>
+        </div>
+      </section>
+      <section class="卷">
+        <h2>主链四阶段</h2>
+        <div class="阶段">
+          <div class="阶卡"><div class="序">01</div><b>装载</b><span>观测点入流，校验运单/网点/事件时</span></div>
+          <div class="阶卡"><div class="序">02</div><b>入窗</b><span>事件时落窗进缓冲，否则进迟到匣</span></div>
+          <div class="阶卡"><div class="序">03</div><b>关窗</b><span>缓冲按运单物化为窗切片账</span></div>
+          <div class="阶卡"><div class="序">04</div><b>贯验</b><span>已物化缓冲事件数 = 切片事件数</span></div>
+        </div>
+      </section>
+      <section class="卷">
+        <h2>水位</h2>
+        <div class="水位" id="水位"></div>
+        <div class="工具">
+          <button class="按钮" id="灌成片">灌窗内成片样例</button>
+          <button class="按钮 次" id="灌迟到">灌迟到样例</button>
+          <button class="按钮 青" id="关窗">关当前窗</button>
+          <button class="按钮 次" id="贯验">跑窗贯验</button>
+        </div>
+        <pre class="回执" id="回执">操作回执会显示在这里</pre>
+      </section>
+      <script>
+      async function 刷新() {
+        const o = await 潮切.getJSON("/api/概览");
+        const r = o.窗规 || {};
+        document.getElementById("尺起").textContent = (r["窗起"] || "窗起").slice(11, 16) || "窗起";
+        document.getElementById("尺止").textContent = (r["窗止"] || "窗止").slice(11, 16) || "窗止";
+        潮切.渲染水位(document.getElementById("水位"), o);
+      }
+      async function 跑(fn) {
+        const el = document.getElementById("回执");
+        try {
+          el.textContent = JSON.stringify(await fn(), null, 2);
+          await 刷新();
+        } catch (e) { el.textContent = String(e); }
+      }
+      document.getElementById("灌成片").onclick = () => 跑(() => 潮切.postJSON("/api/观测点/夹具/窗内成片样例"));
+      document.getElementById("灌迟到").onclick = () => 跑(() => 潮切.postJSON("/api/观测点/夹具/迟到样例"));
+      document.getElementById("关窗").onclick = () => 跑(() => 潮切.postJSON("/api/关窗/跑"));
+      document.getElementById("贯验").onclick = () => 跑(() => 潮切.postJSON("/api/窗贯验/跑"));
+      刷新();
+      </script>
+
+    </main>
+  </div>
+  <script>
+  (async () => {
+    try {
+      const o = await 潮切.getJSON("/api/概览");
+      const r = o.窗规 || {};
+      const el = document.getElementById("侧窗号");
+      const tm = document.getElementById("侧窗时");
+      if (el) el.textContent = r["当前窗号"] || "—";
+      if (tm) tm.textContent = `${r["窗起"] || ""} → ${r["窗止"] || ""}`;
+    } catch (e) {}
+  })();
+  </script>
+</body>
+</html>
