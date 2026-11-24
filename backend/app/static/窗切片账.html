@@ -44,11 +44,11 @@
 
       <section class="卷">
         <div class="工具"><button class="按钮 青" id="关">关当前窗</button></div>
-        <div class="表绕"><table><thead><tr><th>切片编号</th><th>窗号</th><th>运单键</th><th>事件数</th><th>物化时</th></tr></thead><tbody id="表"></tbody></table></div>
+        <div class="表绕"><table><thead><tr><th>切片编号</th><th>窗号</th><th>运单键</th><th>事件数</th><th>首事件时</th><th>形态标记</th><th>物化时</th></tr></thead><tbody id="表"></tbody></table></div>
       </section>
       <section class="卷">
         <div class="双栏">
-          <p class="说明">切片按运单聚合事件数。邻题空桩可改半截回滚/封印写闸，基线只做整窗物化。</p>
+          <p class="说明">切片按运单聚合事件数，事件序按缓冲物化序位（事件时升序）落账；首事件时是切片首条的事件时。邻题空桩可改半截回滚/封印写闸，基线只做整窗物化。</p>
           <div class="侧注">去皮：关窗管道。勿抄对拍左右轨命名。</div>
         </div>
       </section>
@@ -56,9 +56,9 @@
       async function 刷() {
         const rows = await 潮切.getJSON("/api/窗切片账");
         const tb = document.getElementById("表"); tb.innerHTML = "";
-        if (!rows.length) { tb.innerHTML = `<tr><td colspan="5">${潮切.空态("尚无切片。装载窗内事件后点关当前窗。")}</td></tr>`; return; }
+        if (!rows.length) { tb.innerHTML = `<tr><td colspan="7">${潮切.空态("尚无切片。装载窗内事件后点关当前窗。")}</td></tr>`; return; }
         for (const r of rows) {
-          tb.appendChild(潮切.行(`<td>${潮切.安全文本(r.切片编号)}</td><td>${潮切.安全文本(r.窗号)}</td><td>${潮切.安全文本(r.运单键)}</td><td>${r.事件数}</td><td>${潮切.安全文本(r.物化时)}</td>`));
+          tb.appendChild(潮切.行(`<td>${潮切.安全文本(r.切片编号)}</td><td>${潮切.安全文本(r.窗号)}</td><td>${潮切.安全文本(r.运单键)}</td><td>${r.事件数}</td><td>${潮切.安全文本(r.首事件时 || "—")}</td><td>${潮切.安全文本(r.形态标记 || "—")}</td><td>${潮切.安全文本(r.物化时)}</td>`));
         }
       }
       document.getElementById("关").onclick = async () => { await 潮切.postJSON("/api/关窗/跑"); await 刷(); };

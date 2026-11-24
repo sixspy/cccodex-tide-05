@@ -45,6 +45,11 @@
       <section class="卷">
         <div class="表绕"><table><thead><tr><th>事件编号</th><th>运单键</th><th>网点键</th><th>事件时</th><th>命运</th></tr></thead><tbody id="表"></tbody></table></div>
       </section>
+      <section class="卷">
+        <h2>乱序重排卡片</h2>
+        <p class="说明">在缓冲集合按运单读物化序位：首事件时是现行首条，到达首事件时是只读归档轨首条；两者不一致即乱序已重排。</p>
+        <div class="表绕"><table><thead><tr><th>运单键</th><th>首事件时</th><th>到达首事件时</th><th>形态标记</th><th>valid</th></tr></thead><tbody id="重排表"></tbody></table></div>
+      </section>
       <section class="卷"><div class="双栏"><p class="说明">观测点是装载入流。命运应在本页可读：已装载→已入缓冲/已迟到→已成片。</p><div class="侧注">版式：左侧窗时间轴。对拍是顶栏双轨，肉眼应能分开。</div></div></section>
       <script>
       (async () => {
@@ -53,6 +58,16 @@
         if (!rows.length) { tb.innerHTML = `<tr><td colspan="5">${潮切.空态("尚无观测点。回潮切台灌窗内成片样例。")}</td></tr>`; return; }
         for (const r of rows) {
           tb.appendChild(潮切.行(`<td>${潮切.安全文本(r.事件编号)}</td><td>${潮切.安全文本(r.运单键)}</td><td>${潮切.安全文本(r.网点键)}</td><td>${潮切.安全文本(r.事件时)}</td><td>${潮切.徽章(r.命运)}</td>`));
+        }
+      })();
+      (async () => {
+        const d = await 潮切.getJSON("/api/乱序重排");
+        const tb = document.getElementById("重排表");
+        const rows = d.行 || [];
+        if (!rows.length) { tb.innerHTML = `<tr><td colspan="5">${潮切.空态("在缓冲为空，暂无可重排的运单集合。")}</td></tr>`; return; }
+        for (const r of rows) {
+          const v = r.valid ? 潮切.徽章("valid", "好") : 潮切.徽章("invalid", "危");
+          tb.appendChild(潮切.行(`<td>${潮切.安全文本(r.运单键)}</td><td>${潮切.安全文本(r.首事件时)}</td><td>${潮切.安全文本(r.到达首事件时 || "—")}</td><td>${潮切.安全文本(r.形态标记)}</td><td>${v}</td>`));
         }
       })();
       </script>

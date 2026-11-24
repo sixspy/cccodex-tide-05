@@ -43,16 +43,16 @@
       </header>
 
       <section class="卷">
-        <div class="表绕"><table><thead><tr><th>事件编号</th><th>运单键</th><th>窗号</th><th>事件时</th><th>命运</th></tr></thead><tbody id="表"></tbody></table></div>
+        <div class="表绕"><table><thead><tr><th>事件编号</th><th>运单键</th><th>窗号</th><th>序位</th><th>事件时</th><th>形态标记</th><th>命运</th></tr></thead><tbody id="表"></tbody></table></div>
       </section>
-      <section class="卷"><div class="双栏"><p class="说明">缓冲是关窗前的在途。关窗后命运应变为已物化，条数应下降。</p><div class="侧注">版式：左侧窗时间轴。对拍是顶栏双轨，肉眼应能分开。</div></div></section>
+      <section class="卷"><div class="双栏"><p class="说明">缓冲是关窗前的在途。序位按重排形态（事件时升序）物化进表，同运单乱序到达也会按事件时落位；关窗后命运应变为已物化，条数应下降。</p><div class="侧注">版式：左侧窗时间轴。对拍是顶栏双轨，肉眼应能分开。</div></div></section>
       <script>
       (async () => {
         const rows = await 潮切.getJSON("/api/入窗缓冲");
         const tb = document.getElementById("表");
-        if (!rows.length) { tb.innerHTML = `<tr><td colspan="5">${潮切.空态("缓冲为空。要么尚未装载，要么已经关窗物化。")}</td></tr>`; return; }
+        if (!rows.length) { tb.innerHTML = `<tr><td colspan="7">${潮切.空态("缓冲为空。要么尚未装载，要么已经关窗物化。")}</td></tr>`; return; }
         for (const r of rows) {
-          tb.appendChild(潮切.行(`<td>${潮切.安全文本(r.事件编号)}</td><td>${潮切.安全文本(r.运单键)}</td><td>${潮切.安全文本(r.窗号)}</td><td>${潮切.安全文本(r.事件时)}</td><td>${潮切.徽章(r.命运)}</td>`));
+          tb.appendChild(潮切.行(`<td>${潮切.安全文本(r.事件编号)}</td><td>${潮切.安全文本(r.运单键)}</td><td>${潮切.安全文本(r.窗号)}</td><td>${r.序位}</td><td>${潮切.安全文本(r.事件时)}</td><td>${潮切.安全文本(r.形态标记 || "—")}</td><td>${潮切.徽章(r.命运)}</td>`));
         }
       })();
       </script>

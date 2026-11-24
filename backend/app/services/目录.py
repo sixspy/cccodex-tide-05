@@ -45,7 +45,8 @@ def 观测列表() -> list[dict]:
 def 缓冲列表() -> list[dict]:
     conn = 连接()
     try:
-        return [dict(r) for r in conn.execute("SELECT * FROM 入窗缓冲 ORDER BY 事件时").fetchall()]
+        # 读物化序位（重排已物化进表），不是临时改排序样式
+        return [dict(r) for r in conn.execute("SELECT * FROM 入窗缓冲 ORDER BY 窗号,运单键,序位,事件编号").fetchall()]
     finally:
         conn.close()
 

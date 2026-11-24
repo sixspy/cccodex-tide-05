@@ -47,6 +47,14 @@
         <pre class="回执" id="规">加载中…</pre>
       </section>
       <section class="卷">
+        <h2>重排策略</h2>
+        <p class="说明" id="重排">加载中…</p>
+        <div class="双栏">
+          <p class="说明">乱序重排入窗已接线：装载双写两轨（到达序进只读归档，缓冲按重排形态物化序位），关窗切片与缓冲同读事件时升序集合。</p>
+          <div class="侧注">子方向：采集入库编排。行业皮：物流网点轨迹。去皮：事件时关窗管道。</div>
+        </div>
+      </section>
+      <section class="卷">
         <h2>空桩目录</h2>
         <p class="说明" id="空桩"></p>
         <div class="双栏">
@@ -56,7 +64,10 @@
       </section>
       <script>
       (async () => {
-        document.getElementById("规").textContent = JSON.stringify(await 潮切.getJSON("/api/窗规"), null, 2);
+        const 规 = await 潮切.getJSON("/api/窗规");
+        document.getElementById("规").textContent = JSON.stringify(规, null, 2);
+        document.getElementById("重排").textContent =
+          `重排形态：${规["重排形态"] || "事件时升序"} · 乱序重排：${规["乱序重排"] || "启用"}`;
         const s = await 潮切.getJSON("/api/空桩");
         document.getElementById("空桩").textContent = "空桩 " + s.条数 + "：" + (s.空桩 || []).join(" · ");
       })();

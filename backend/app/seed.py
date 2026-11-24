@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS 入窗缓冲 (
   事件时 TEXT NOT NULL,
   窗号 TEXT NOT NULL,
   命运 TEXT NOT NULL DEFAULT '在缓冲',
-  入缓冲时 TEXT NOT NULL
+  入缓冲时 TEXT NOT NULL,
+  序位 INTEGER NOT NULL DEFAULT 0,
+  形态标记 TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS 窗切片账 (
   切片编号 TEXT PRIMARY KEY,
@@ -38,7 +40,21 @@ CREATE TABLE IF NOT EXISTS 窗切片账 (
   窗起 TEXT NOT NULL,
   窗止 TEXT NOT NULL,
   物化时 TEXT NOT NULL,
-  命运 TEXT NOT NULL DEFAULT '已成片'
+  命运 TEXT NOT NULL DEFAULT '已成片',
+  首事件时 TEXT NOT NULL DEFAULT '',
+  形态标记 TEXT NOT NULL DEFAULT '',
+  事件序 TEXT NOT NULL DEFAULT '[]'
+);
+CREATE TABLE IF NOT EXISTS 到达归档 (
+  编号 INTEGER PRIMARY KEY AUTOINCREMENT,
+  事件编号 TEXT NOT NULL,
+  运单键 TEXT NOT NULL,
+  网点键 TEXT NOT NULL,
+  事件时 TEXT NOT NULL,
+  窗号 TEXT NOT NULL,
+  批次编号 TEXT NOT NULL DEFAULT '',
+  到达序 INTEGER NOT NULL DEFAULT 0,
+  归档时 TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS 迟到匣 (
   编号 INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,19 +95,43 @@ def 此刻() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+# 老库补列：CREATE TABLE IF NOT EXISTS 不会给已存在的表加列
+补列 = {
+    "入窗缓冲": [("序位", "INTEGER NOT NULL DEFAULT 0"), ("形态标记", "TEXT NOT NULL DEFAULT ''")],
+    "窗切片账": [
+        ("首事件时", "TEXT NOT NULL DEFAULT ''"),
+        ("形态标记", "TEXT NOT NULL DEFAULT ''"),
+        ("事件序", "TEXT NOT NULL DEFAULT '[]'"),
+    ],
+}
+
+
+def 迁移补缺(conn) -> None:
+    for 表, 列组 in 补列.items():
+        已有 = {r["name"] for r in conn.execute(f"PRAGMA table_info({表})")}
+        for 名, 型 in 列组:
+            if 名 not in 已有:
+                conn.execute(f"ALTER TABLE {表} ADD COLUMN {名} {型}")
+
+
 def 初始化库() -> None:
     conn = 连接()
     conn.executescript(建表)
-    if conn.execute("SELECT COUNT(*) AS c FROM 窗规").fetchone()["c"] == 0:
-        for k, v in {
-            "窗长秒": "3600",
-            "允许迟到秒": "0",
-            "关窗策略": "按事件时整点",
-            "当前窗号": "W-demo",
-            "窗起": "2026-11-24T00:00:00Z",
-            "窗止": "2026-11-24T01:00:00Z",
-        }.items():
-            conn.execute("INSERT INTO 窗规(键,值) VALUES (?,?)", (k, v))
+    迁移补缺(conn)
+    # 窗规逐键补缺（含乱序重排入窗策略键）：新库播种，老库不覆盖已改值
+    for k, v in {
+        "窗长秒": "3600",
+        "允许迟到秒": "0",
+        "关窗策略": "按事件时整点",
+        "当前窗号": "W-demo",
+        "窗起": "2026-11-24T00:00:00Z",
+        "窗止": "2026-11-24T01:00:00Z",
+        "重排形态": "事件时升序",
+        "乱序重排": "启用",
+    }.items():
+        conn.execute(
+            "INSERT INTO 窗规(键,值) VALUES (?,?) ON CONFLICT(键) DO NOTHING", (k, v)
+        )
     if conn.execute("SELECT COUNT(*) AS c FROM 网点源").fetchone()["c"] == 0:
         for row in [
             ("网点-东站", "东站分拨", "华东", "示范网点"),

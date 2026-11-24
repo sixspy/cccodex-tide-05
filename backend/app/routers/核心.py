@@ -2,6 +2,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 from pathlib import Path
+from app.modules import 乱序重排入窗 as 重排
 from app.services import 目录, 装载, 关窗, 贯验, 夹具, 统计, 说明
 
 
@@ -40,6 +41,14 @@ async def api_切片(request: Request):
 
 async def api_迟到(request: Request):
     return JSONResponse(目录.迟到列表())
+
+
+async def api_乱序重排(request: Request):
+    return JSONResponse({
+        "接口": "乱序重排入窗",
+        "形态": 目录.窗规().get("重排形态", 重排.形态_事件时升序),
+        "行": 重排.重排视图(),
+    })
 
 
 async def api_贯验列表(request: Request):
@@ -99,6 +108,7 @@ async def api_空桩(request: Request):
     Route("/api/入窗缓冲", api_缓冲),
     Route("/api/窗切片账", api_切片),
     Route("/api/迟到匣", api_迟到),
+    Route("/api/乱序重排", api_乱序重排),
     Route("/api/窗贯验", api_贯验列表),
     Route("/api/夹具", api_夹具),
     Route("/api/观测点/装载", api_装载, methods=["POST"]),

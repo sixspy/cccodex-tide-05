@@ -1,8 +1,9 @@
-"""观测点装载 → 入窗或迟到。"""
+"""观测点装载 → 乱序重排入窗 或 迟到。"""
 from __future__ import annotations
 import json
 import uuid
 from app.db import 连接
+from app.modules import 乱序重排入窗 as 重排
 from app.seed import 此刻
 from app.services import 校验, 目录, 时间
 
@@ -17,49 +18,64 @@ def 装一批(体: dict) -> dict:
     窗号 = 规.get("当前窗号", "W-demo")
     窗起 = 规.get("窗起", "2026-11-24T00:00:00Z")
     窗止 = 规.get("窗止", "2026-11-24T01:00:00Z")
+    形态 = 规.get("重排形态", 重排.形态_事件时升序)
     conn = 连接()
     try:
-        for ev in 事件:
-            行错 = 校验.校验事件(ev)
-            if 行错:
-                报告["驳回"] += 1
-                报告["明细"].append({"命运": "驳回-校验", "说明": ";".join(行错)})
-                continue
-            编号 = ev["事件编号"]
-            if conn.execute("SELECT 1 FROM 观测点 WHERE 事件编号=?", (编号,)).fetchone():
-                报告["驳回"] += 1
-                报告["明细"].append({"命运": "驳回-幂等", "说明": 编号})
-                continue
-            处理 = 此刻()
-            conn.execute(
-                """INSERT INTO 观测点(事件编号,运单键,网点键,事件时,处理时,命运,批次编号)
-                   VALUES (?,?,?,?,?,?,?)""",
-                (编号, ev["运单键"], ev["网点键"], ev["事件时"], 处理, "已装载", 批次),
-            )
-            报告["入流"] += 1
-            if 时间.在窗内(ev["事件时"], 窗起, 窗止):
+        with 重排.窗锁:  # 乱序批与关窗并发互斥：缺锁会双序、双成功
+            待写: dict[str, list] = {}
+            for i, ev in enumerate(事件):
+                行错 = 校验.校验事件(ev)
+                if 行错:
+                    报告["驳回"] += 1
+                    报告["明细"].append({"命运": "驳回-校验", "说明": ";".join(行错)})
+                    continue
+                编号 = ev["事件编号"]
+                if conn.execute("SELECT 1 FROM 观测点 WHERE 事件编号=?", (编号,)).fetchone():
+                    报告["驳回"] += 1
+                    报告["明细"].append({"命运": "驳回-幂等", "说明": 编号})
+                    continue
+                处理 = 此刻()
                 conn.execute(
-                    """INSERT INTO 入窗缓冲(事件编号,运单键,网点键,事件时,窗号,命运,入缓冲时)
+                    """INSERT INTO 观测点(事件编号,运单键,网点键,事件时,处理时,命运,批次编号)
                        VALUES (?,?,?,?,?,?,?)""",
-                    (编号, ev["运单键"], ev["网点键"], ev["事件时"], 窗号, "在缓冲", 处理),
+                    (编号, ev["运单键"], ev["网点键"], ev["事件时"], 处理, "已装载", 批次),
                 )
-                conn.execute("UPDATE 观测点 SET 命运=? WHERE 事件编号=?", ("已入缓冲", 编号))
-                报告["入缓冲"] += 1
-                报告["明细"].append({"命运": "入缓冲", "事件编号": 编号, "窗号": 窗号})
-            else:
-                conn.execute(
-                    """INSERT INTO 迟到匣(事件编号,运单键,原因,事件时,入匣时)
-                       VALUES (?,?,?,?,?)""",
-                    (编号, ev["运单键"], "事件时出窗", ev["事件时"], 处理),
-                )
-                conn.execute("UPDATE 观测点 SET 命运=? WHERE 事件编号=?", ("已迟到", 编号))
-                报告["迟到"] += 1
-                报告["明细"].append({"命运": "迟到", "事件编号": 编号})
-        conn.execute(
-            """INSERT INTO 装载批次(编号,时刻,入流,入缓冲,迟到,报告) VALUES (?,?,?,?,?,?)""",
-            (批次, 此刻(), 报告["入流"], 报告["入缓冲"], 报告["迟到"], json.dumps(报告, ensure_ascii=False)),
-        )
-        conn.commit()
+                报告["入流"] += 1
+                if 时间.在窗内(ev["事件时"], 窗起, 窗止):
+                    # 双写两轨之一：到达序进只读归档
+                    conn.execute(
+                        """INSERT INTO 到达归档(事件编号,运单键,网点键,事件时,窗号,批次编号,到达序,归档时)
+                           VALUES (?,?,?,?,?,?,?,?)""",
+                        (编号, ev["运单键"], ev["网点键"], ev["事件时"], 窗号, 批次, i, 处理),
+                    )
+                    待写.setdefault(ev["运单键"], []).append(
+                        {"事件编号": 编号, "网点键": ev["网点键"], "事件时": ev["事件时"], "入缓冲时": 处理}
+                    )
+                    报告["入缓冲"] += 1
+                    报告["明细"].append({"命运": "入缓冲", "事件编号": 编号, "窗号": 窗号})
+                else:
+                    conn.execute(
+                        """INSERT INTO 迟到匣(事件编号,运单键,原因,事件时,入匣时)
+                           VALUES (?,?,?,?,?)""",
+                        (编号, ev["运单键"], "事件时出窗", ev["事件时"], 处理),
+                    )
+                    conn.execute("UPDATE 观测点 SET 命运=? WHERE 事件编号=?", ("已迟到", 编号))
+                    报告["迟到"] += 1
+                    报告["明细"].append({"命运": "迟到", "事件编号": 编号})
+            # 双写两轨之二：现行缓冲按选定形态重排序位并物化（同事务同成败）
+            for 运单键, 新行 in 待写.items():
+                标记 = 重排.重排写缓冲(conn, 窗号, 运单键, 新行, 形态)
+                for e in 新行:
+                    conn.execute("UPDATE 观测点 SET 命运=? WHERE 事件编号=?", ("已入缓冲", e["事件编号"]))
+                报告["明细"].append({"命运": "重排", "运单键": 运单键, "形态标记": 标记})
+            conn.execute(
+                """INSERT INTO 装载批次(编号,时刻,入流,入缓冲,迟到,报告) VALUES (?,?,?,?,?,?)""",
+                (批次, 此刻(), 报告["入流"], 报告["入缓冲"], 报告["迟到"], json.dumps(报告, ensure_ascii=False)),
+            )
+            conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
     return 报告

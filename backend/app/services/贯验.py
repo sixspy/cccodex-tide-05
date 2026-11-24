@@ -1,6 +1,7 @@
 """窗贯验：缓冲/切片/迟到互证。"""
 from __future__ import annotations
 from app.db import 连接
+from app.modules import 乱序重排入窗 as 重排
 from app.seed import 此刻
 
 
@@ -20,6 +21,11 @@ def 跑一次() -> dict:
         # 基线口径：已物化缓冲事件数应等于切片事件数之和
         对齐 = 1 if int(已物化缓冲) == int(切片事件) else 0
         说明 = "缓冲物化与切片事件数一致" if 对齐 else f"撕裂：已物化缓冲={已物化缓冲} 切片事件={切片事件}"
+        # 乱序重排入窗附加检查：在缓冲序位须连续且按事件时升序
+        额外 = 重排.extra_verify_checks({"重排视图": 重排.重排视图(conn)})
+        if 额外:
+            对齐 = 0
+            说明 += "；" + "；".join(额外)
         时刻 = 此刻()
         conn.execute(
             """INSERT INTO 窗贯验(时刻,缓冲笔数,切片笔数,迟到笔数,是否对齐,说明)
